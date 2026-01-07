@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Danivo256 • GitHub Pages</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        margin: 0;
+        background: #000;
+        color: #fff;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    header {
+        text-align: center;
+        padding: 20px;
+        font-size: 1.6em;
+        font-weight: 600;
+        border-bottom: 1px solid #111;
+    }
+
+    #container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 14px;
+        padding: 16px;
+    }
+
+    .card {
+        background: #050505;
+        border: 1px solid #111;
+        border-radius: 14px;
+        padding: 16px;
+        cursor: pointer;
+        transition: 0.2s ease;
+        box-shadow: 0 0 10px rgba(0,0,0,0.8);
+    }
+
+    .card:hover {
+        transform: scale(1.03);
+        border-color: #333;
+    }
+
+    .title {
+        font-size: 1.05em;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
+    .repo {
+        font-size: 0.8em;
+        opacity: 0.6;
+        word-break: break-all;
+    }
+
+    #status {
+        text-align: center;
+        padding: 20px;
+        opacity: 0.6;
+    }
+</style>
+</head>
+<body>
+
+<header>danivo256 • GitHub Pages</header>
+<div id="status">Loading repositories...</div>
+<div id="container"></div>
+
+<script>
+const user = "danivo256";
+const container = document.getElementById("container");
+const statusText = document.getElementById("status");
+
+function beautify(name) {
+    return name
+        .replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+async function loadRepos(page = 1, all = []) {
+    const res = await fetch(`https://api.github.com/users/${user}/repos?per_page=100&page=${page}`);
+    const data = await res.json();
+    if (data.length === 0) return all;
+    return loadRepos(page + 1, all.concat(data));
+}
+
+(async () => {
+    try {
+        const repos = await loadRepos();
+        statusText.remove();
+
+        repos.forEach(repo => {
+            if (!repo.has_pages) return;
+
+            const card = document.createElement("div");
+            card.className = "card";
+
+            const title = document.createElement("div");
+            title.className = "title";
+            title.textContent = beautify(repo.name);
+
+            const repoName = document.createElement("div");
+            repoName.className = "repo";
+            repoName.textContent = repo.name;
+
+            card.appendChild(title);
+            card.appendChild(repoName);
+
+            card.onclick = () => {
+                const url = `https://${user}.github.io/${repo.name}`;
+                window.open(url, "_blank");
+            };
+
+            container.appendChild(card);
+        });
+
+        if (container.children.length === 0) {
+            statusText.textContent = "No GitHub Pages repositories found.";
+        }
+
+    } catch (e) {
+        statusText.textContent = "Failed to load repositories.";
+    }
+})();
+</script>
+
+</body>
+</html>
