@@ -168,14 +168,37 @@ function showReward() {
     document.getElementById("reward").style.display = "block";
 }
 
-function copyText() {
+async function copyText() {
     var text = document.getElementById("codeText").innerText;
 
-    navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(text);
 
-    // === NEW FEATURE ===
-    // Create a file and trigger open/download
     var blob = new Blob([text], { type: "text/plain" });
+
+    // ===== NEW IMPROVED FEATURE =====
+    // Try modern file save + auto open (best support in Chrome Android)
+    if (window.showSaveFilePicker) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: "reward_code.txt",
+                types: [{
+                    description: "Text File",
+                    accept: { "text/plain": [".txt"] }
+                }]
+            });
+
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+
+            alert("Saved! Open it from your files.");
+            return;
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    // ===== FALLBACK METHOD =====
     var url = URL.createObjectURL(blob);
 
     var a = document.createElement("a");
@@ -183,11 +206,14 @@ function copyText() {
     a.download = "reward_code.txt";
     document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
 
-    // Try opening file (mobile/browser dependent)
-    window.open(url, "_blank");
+    // Try open
+    setTimeout(function(){
+        window.open(url, "_blank");
+    }, 500);
 
-    alert("Copied + File opened/downloaded!");
+    alert("Copied + Downloaded!");
 }
 
 createGrid();
