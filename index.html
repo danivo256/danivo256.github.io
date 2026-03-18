@@ -52,7 +52,7 @@ header {
     opacity: 0.6;
 }
 
-/* FILE VIEWER */
+/* FILE PANEL */
 #fileViewer {
     position: fixed;
     top: 0;
@@ -103,7 +103,7 @@ header {
 
 <div id="fileViewer">
     <div id="fileHeader">
-        Files
+        HTML Files
         <span class="closeBtn" onclick="closeViewer()">✕</span>
     </div>
     <div id="fileList"></div>
@@ -132,7 +132,7 @@ function closeViewer() {
     fileList.innerHTML = "";
 }
 
-async function loadFiles(repo) {
+async function loadHtmlFiles(repo) {
     fileList.innerHTML = "Loading...";
     fileViewer.classList.add("active");
 
@@ -142,13 +142,24 @@ async function loadFiles(repo) {
 
         fileList.innerHTML = "";
 
-        files.forEach(file => {
+        const htmlFiles = files.filter(f => 
+            f.type === "file" && f.name.endsWith(".html")
+        );
+
+        if (htmlFiles.length === 0) {
+            fileList.innerHTML = "No HTML files found.";
+            return;
+        }
+
+        htmlFiles.forEach(file => {
             const div = document.createElement("div");
             div.className = "file";
             div.textContent = file.name;
 
             div.onclick = () => {
-                window.open(file.html_url, "_blank");
+                // ✅ OPEN GITHUB PAGES FILE (NOT GITHUB REPO)
+                const url = `https://${user}.github.io/${repo}/${file.name}`;
+                window.open(url, "_blank");
             };
 
             fileList.appendChild(div);
@@ -180,11 +191,9 @@ async function loadFiles(repo) {
         card.appendChild(repoName);
 
         card.onclick = () => {
-            const url = `https://${user}.github.io/${repo.name}`;
-            window.open(url, "_blank");
-
-            // NEW FEATURE
-            loadFiles(repo.name);
+            // ❌ REMOVED direct index.html opening
+            // ✅ NOW ONLY SHOW FILE LIST
+            loadHtmlFiles(repo.name);
         };
 
         container.appendChild(card);
