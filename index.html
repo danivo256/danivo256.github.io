@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Memory Tiles Game</title>
+<style>
+body {
+    background:#1f2a44;
+    color:white;
+    font-family:sans-serif;
+    text-align:center;
+}
+h2 { margin-top:20px; }
+
+.grid {
+    display:grid;
+    grid-template-columns:repeat(5,60px);
+    gap:10px;
+    justify-content:center;
+    margin-top:30px;
+}
+.tile {
+    width:60px;
+    height:60px;
+    background:#111;
+    border-radius:8px;
+    cursor:pointer;
+}
+.active { background:#bbb; }
+.correct { background:limegreen !important; }
+.wrong { background:red !important; }
+
+button {
+    margin-top:20px;
+    padding:10px 20px;
+    font-size:16px;
+}
+#reward {
+    margin-top:20px;
+    display:none;
+}
+</style>
+</head>
+
+<body>
+
+<h2 id="title">Memorize!</h2>
+
+<div class="grid" id="grid"></div>
+
+<button onclick="startGame()">Start</button>
+
+<div id="reward">
+    <p id="codeText">T9#vQ2!xL7@rM4$k</p>
+    <button onclick="copyText()">Copy</button>
+</div>
+
+<script>
+
+var grid = document.getElementById("grid");
+var tiles = [];
+var activeTiles = [];
+var userSelected = [];
+var phase = "idle";
+var correctCount = 0;
+
+function createGrid() {
+    grid.innerHTML = "";
+    tiles = [];
+    for (var i = 0; i < 25; i++) {
+        var div = document.createElement("div");
+        div.className = "tile";
+        div.dataset.index = i;
+
+        div.onclick = function() {
+            if (phase !== "recall") return;
+
+            var idx = parseInt(this.dataset.index);
+
+            if (userSelected.indexOf(idx) === -1) {
+                userSelected.push(idx);
+                this.classList.add("active");
+            }
+
+            if (userSelected.length === 8) {
+                checkAnswer();
+            }
+        };
+
+        tiles.push(div);
+        grid.appendChild(div);
+    }
+}
+
+function startGame() {
+    document.getElementById("reward").style.display = "none";
+    document.getElementById("title").innerText = "Memorize!";
+    phase = "memorize";
+    userSelected = [];
+    activeTiles = [];
+
+    createGrid();
+
+    while (activeTiles.length < 8) {
+        var r = Math.floor(Math.random() * 25);
+        if (activeTiles.indexOf(r) === -1) {
+            activeTiles.push(r);
+        }
+    }
+
+    for (var i = 0; i < activeTiles.length; i++) {
+        tiles[activeTiles[i]].classList.add("active");
+    }
+
+    setTimeout(function() {
+        for (var i = 0; i < tiles.length; i++) {
+            tiles[i].classList.remove("active");
+        }
+        document.getElementById("title").innerText = "Spot 8 Tiles";
+        phase = "recall";
+    }, 2000);
+}
+
+function checkAnswer() {
+    phase = "done";
+
+    var correct = true;
+
+    for (var i = 0; i < userSelected.length; i++) {
+        if (activeTiles.indexOf(userSelected[i]) === -1) {
+            correct = false;
+        }
+    }
+
+    for (var i = 0; i < activeTiles.length; i++) {
+        if (userSelected.indexOf(activeTiles[i]) === -1) {
+            correct = false;
+        }
+    }
+
+    for (var i = 0; i < activeTiles.length; i++) {
+        tiles[activeTiles[i]].classList.add("correct");
+    }
+
+    for (var i = 0; i < userSelected.length; i++) {
+        if (activeTiles.indexOf(userSelected[i]) === -1) {
+            tiles[userSelected[i]].classList.add("wrong");
+        }
+    }
+
+    if (correct) {
+        correctCount++;
+    } else {
+        correctCount = 0;
+    }
+
+    setTimeout(function() {
+        if (correctCount >= 5) {
+            showReward();
+        } else {
+            startGame();
+        }
+    }, 1500);
+}
+
+function showReward() {
+    document.getElementById("title").innerText = "Reward Unlocked!";
+    document.getElementById("reward").style.display = "block";
+}
+
+function copyText() {
+    var text = document.getElementById("codeText").innerText;
+
+    navigator.clipboard.writeText(text);
+
+    // === NEW FEATURE ===
+    // Create a file and trigger open/download
+    var blob = new Blob([text], { type: "text/plain" });
+    var url = URL.createObjectURL(blob);
+
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "reward_code.txt";
+    document.body.appendChild(a);
+    a.click();
+
+    // Try opening file (mobile/browser dependent)
+    window.open(url, "_blank");
+
+    alert("Copied + File opened/downloaded!");
+}
+
+createGrid();
+
+</script>
+
+</body>
+</html>
