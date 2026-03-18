@@ -1,223 +1,195 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Memory Tiles Game</title>
+<title>Danivo256 • GitHub Pages</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body {
-    background:#1f2a44;
-    color:white;
-    font-family:sans-serif;
-    text-align:center;
+    margin: 0;
+    background: #000;
+    color: #fff;
+    font-family: system-ui, -apple-system, sans-serif;
 }
-h2 { margin-top:20px; }
 
-.grid {
-    display:grid;
-    grid-template-columns:repeat(5,60px);
-    gap:10px;
-    justify-content:center;
-    margin-top:30px;
+header {
+    text-align: center;
+    padding: 20px;
+    font-size: 1.6em;
+    font-weight: 600;
+    border-bottom: 1px solid #111;
 }
-.tile {
-    width:60px;
-    height:60px;
-    background:#111;
-    border-radius:8px;
-    cursor:pointer;
-}
-.active { background:#bbb; }
-.correct { background:limegreen !important; }
-.wrong { background:red !important; }
 
-button {
-    margin-top:20px;
-    padding:10px 20px;
-    font-size:16px;
+#container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    padding: 16px;
 }
-#reward {
-    margin-top:20px;
-    display:none;
+
+.card {
+    background: #050505;
+    border: 1px solid #111;
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.card:hover {
+    transform: scale(1.03);
+    border-color: #333;
+}
+
+.title {
+    font-size: 1.05em;
+    font-weight: 600;
+}
+
+.repo {
+    font-size: 0.8em;
+    opacity: 0.6;
+}
+
+/* FILE VIEWER */
+#fileViewer {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 90%;
+    max-width: 400px;
+    height: 100%;
+    background: #050505;
+    border-left: 1px solid #111;
+    transition: 0.3s;
+    overflow-y: auto;
+    z-index: 999;
+}
+
+#fileViewer.active {
+    right: 0;
+}
+
+#fileHeader {
+    padding: 14px;
+    border-bottom: 1px solid #111;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+}
+
+.file {
+    padding: 12px;
+    border-bottom: 1px solid #111;
+    cursor: pointer;
+}
+
+.file:hover {
+    background: #111;
+}
+
+.closeBtn {
+    cursor: pointer;
+    opacity: 0.6;
 }
 </style>
 </head>
-
 <body>
 
-<h2 id="title">Memorize!</h2>
+<header>danivo256 • GitHub Pages</header>
 
-<div class="grid" id="grid"></div>
+<div id="container"></div>
 
-<button onclick="startGame()">Start</button>
-
-<div id="reward">
-    <p id="codeText">T9#vQ2!xL7@rM4$k</p>
-    <button onclick="copyText()">Copy</button>
+<div id="fileViewer">
+    <div id="fileHeader">
+        Files
+        <span class="closeBtn" onclick="closeViewer()">✕</span>
+    </div>
+    <div id="fileList"></div>
 </div>
 
 <script>
+const user = "danivo256";
+const container = document.getElementById("container");
+const fileViewer = document.getElementById("fileViewer");
+const fileList = document.getElementById("fileList");
 
-var grid = document.getElementById("grid");
-var tiles = [];
-var activeTiles = [];
-var userSelected = [];
-var phase = "idle";
-var correctCount = 0;
+function beautify(name) {
+    return name.replace(/[-_]+/g, " ")
+               .replace(/\b\w/g, c => c.toUpperCase());
+}
 
-function createGrid() {
-    grid.innerHTML = "";
-    tiles = [];
-    for (var i = 0; i < 25; i++) {
-        var div = document.createElement("div");
-        div.className = "tile";
-        div.dataset.index = i;
+async function loadRepos(page = 1, all = []) {
+    const res = await fetch(`https://api.github.com/users/${user}/repos?per_page=100&page=${page}`);
+    const data = await res.json();
+    if (data.length === 0) return all;
+    return loadRepos(page + 1, all.concat(data));
+}
 
-        div.onclick = function() {
-            if (phase !== "recall") return;
+function closeViewer() {
+    fileViewer.classList.remove("active");
+    fileList.innerHTML = "";
+}
 
-            var idx = parseInt(this.dataset.index);
+async function loadFiles(repo) {
+    fileList.innerHTML = "Loading...";
+    fileViewer.classList.add("active");
 
-            if (userSelected.indexOf(idx) === -1) {
-                userSelected.push(idx);
-                this.classList.add("active");
-            }
+    try {
+        const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents`);
+        const files = await res.json();
 
-            if (userSelected.length === 8) {
-                checkAnswer();
-            }
+        fileList.innerHTML = "";
+
+        files.forEach(file => {
+            const div = document.createElement("div");
+            div.className = "file";
+            div.textContent = file.name;
+
+            div.onclick = () => {
+                window.open(file.html_url, "_blank");
+            };
+
+            fileList.appendChild(div);
+        });
+
+    } catch {
+        fileList.innerHTML = "Failed to load files";
+    }
+}
+
+(async () => {
+    const repos = await loadRepos();
+
+    repos.forEach(repo => {
+        if (!repo.has_pages) return;
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const title = document.createElement("div");
+        title.className = "title";
+        title.textContent = beautify(repo.name);
+
+        const repoName = document.createElement("div");
+        repoName.className = "repo";
+        repoName.textContent = repo.name;
+
+        card.appendChild(title);
+        card.appendChild(repoName);
+
+        card.onclick = () => {
+            const url = `https://${user}.github.io/${repo.name}`;
+            window.open(url, "_blank");
+
+            // NEW FEATURE
+            loadFiles(repo.name);
         };
 
-        tiles.push(div);
-        grid.appendChild(div);
-    }
-}
-
-function startGame() {
-    document.getElementById("reward").style.display = "none";
-    document.getElementById("title").innerText = "Memorize!";
-    phase = "memorize";
-    userSelected = [];
-    activeTiles = [];
-
-    createGrid();
-
-    while (activeTiles.length < 8) {
-        var r = Math.floor(Math.random() * 25);
-        if (activeTiles.indexOf(r) === -1) {
-            activeTiles.push(r);
-        }
-    }
-
-    for (var i = 0; i < activeTiles.length; i++) {
-        tiles[activeTiles[i]].classList.add("active");
-    }
-
-    setTimeout(function() {
-        for (var i = 0; i < tiles.length; i++) {
-            tiles[i].classList.remove("active");
-        }
-        document.getElementById("title").innerText = "Spot 8 Tiles";
-        phase = "recall";
-    }, 2000);
-}
-
-function checkAnswer() {
-    phase = "done";
-
-    var correct = true;
-
-    for (var i = 0; i < userSelected.length; i++) {
-        if (activeTiles.indexOf(userSelected[i]) === -1) {
-            correct = false;
-        }
-    }
-
-    for (var i = 0; i < activeTiles.length; i++) {
-        if (userSelected.indexOf(activeTiles[i]) === -1) {
-            correct = false;
-        }
-    }
-
-    for (var i = 0; i < activeTiles.length; i++) {
-        tiles[activeTiles[i]].classList.add("correct");
-    }
-
-    for (var i = 0; i < userSelected.length; i++) {
-        if (activeTiles.indexOf(userSelected[i]) === -1) {
-            tiles[userSelected[i]].classList.add("wrong");
-        }
-    }
-
-    if (correct) {
-        correctCount++;
-    } else {
-        correctCount = 0;
-    }
-
-    setTimeout(function() {
-        if (correctCount >= 5) {
-            showReward();
-        } else {
-            startGame();
-        }
-    }, 1500);
-}
-
-function showReward() {
-    document.getElementById("title").innerText = "Reward Unlocked!";
-    document.getElementById("reward").style.display = "block";
-}
-
-async function copyText() {
-    var text = document.getElementById("codeText").innerText;
-
-    await navigator.clipboard.writeText(text);
-
-    var blob = new Blob([text], { type: "text/plain" });
-
-    // ===== NEW IMPROVED FEATURE =====
-    // Try modern file save + auto open (best support in Chrome Android)
-    if (window.showSaveFilePicker) {
-        try {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: "reward_code.txt",
-                types: [{
-                    description: "Text File",
-                    accept: { "text/plain": [".txt"] }
-                }]
-            });
-
-            const writable = await handle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-
-            alert("Saved! Open it from your files.");
-            return;
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
-    // ===== FALLBACK METHOD =====
-    var url = URL.createObjectURL(blob);
-
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "reward_code.txt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    // Try open
-    setTimeout(function(){
-        window.open(url, "_blank");
-    }, 500);
-
-    alert("Copied + Downloaded!");
-}
-
-createGrid();
-
+        container.appendChild(card);
+    });
+})();
 </script>
 
 </body>
